@@ -44,9 +44,13 @@ fn main() {
     // Imprimir la lista de tokens generada
     println!("--- Lista de Tokens ---");
     for token in tokens {
+        // Formateamos el enum a texto y lo cortamos en el primer '('
+        let nombre_tipo = format!("{:?}", token.token_type);
+        let solo_nombre = nombre_tipo.split('(').next().unwrap_or(&nombre_tipo);
+
         println!(
-            "[{:?}] Valor: '{}' | Línea: {}, Columna: {}, Indentación: {}",
-            token.token_type, token.value, token.line, token.column, token.indent_level
+            "[{}] Valor: '{}' | Línea: {}, Columna: {}, Indentación: {}",
+            solo_nombre, token.value, token.line, token.column, token.indent_level
         );
     }
 }
