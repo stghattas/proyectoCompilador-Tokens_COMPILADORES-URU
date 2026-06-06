@@ -26,7 +26,7 @@ pub struct Lexer {
     current_char: Option<char>,
     line: usize,
     column: usize,
-    indent_stack: Vec<usize>, // Pila para manejar indentacion dinamica
+    indent_stack: Vec<String>,
     current_indent: usize,
 }
 
@@ -41,7 +41,7 @@ impl Lexer {
             current_char: first_char,
             line: 1,
             column: 1,
-            indent_stack: vec![0], // Nivel base (0 espacios)
+            indent_stack: vec![String::new()], // Nivel base es texto vacio
             current_indent: 0,
         }
     }
@@ -63,68 +63,94 @@ impl Lexer {
         self.column = 0;
         self.advance(); // Consumir el \n
 
-        let mut spaces = 0;
+        let mut current_whitespace = String::new();
+
+        // Recolectamos la cadena exacta de indentacion
         while let Some(c) = self.current_char {
-            if c == ' ' {
-                spaces += 1;
-                self.advance();
-            } else if c == '\t' {
-                spaces += 4; // Puedes ajustarlo, pero sumamos cantidad
+            if c == ' ' || c == '\t' {
+                current_whitespace.push(c);
                 self.advance();
             } else if c == '\n' {
-                // reiniciar conteo
+                // Linea vacia, reiniciar
                 self.line += 1;
                 self.column = 0;
-                spaces = 0;
+                current_whitespace.clear();
                 self.advance();
             } else {
                 break;
             }
         }
 
-        // Logica de Pila de Identacion
-        let current_top = *self.indent_stack.last().unwrap_or(&0);
-        if spaces > current_top {
-            // Aumento de nivel (Indent)
-            self.indent_stack.push(spaces);
-        } else if spaces < current_top {
-            // Retroceso de nivel (Dedent)
-            while let Some(&top) = self.indent_stack.last() {
-                if spaces < top {
-                    self.indent_stack.pop();
-                } else {
-                    break;
+        // Logica de Pila de indentacion
+        let current_top = self.indent_stack.last().unwrap().clone();
+
+        if current_whitespace != current_top {
+            if current_whitespace.starts_with(&current_top) {
+                // Si la nueva indentacion contiene a la anterior y es más larga: INDENT
+                self.indent_stack.push(current_whitespace);
+            } else {
+                // Si es diferente y no la contiene, estamos retrocediendo: DEDENT
+                while let Some(top) = self.indent_stack.last() {
+                    // Retiramos niveles hasta que el tamaño coincida o sea menor
+                    if current_whitespace.len() < top.len() {
+                        self.indent_stack.pop();
+                    } else {
+                        break;
+                    }
                 }
+
+                // Nota para el futuro: Aqui es donde los compiladores lanzan un
+                // "IndentationError" si después de hacer pop(), current_whitespace
+                // no es exactamente igual al nuevo tope de la pila.
             }
         }
+
         self.current_indent = self.indent_stack.len() - 1;
     }
 
     fn read_string(&mut self, quote_type: char) -> Token {
         let start_column = self.column;
-        let mut value = String::new();
-        self.advance(); // Consumir comilla de apertura
+
+        let mut raw_lexeme = String::new(); // Lo que escribio el usuario
+        let mut processed_value = String::new(); // El valor interpretado para memoria
+
+        // Consumimos la comilla de apertura
+        self.advance();
 
         while let Some(c) = self.current_char {
             if c == '\\' {
-                // Escapar el siguiente caracter
+                raw_lexeme.push(c);
                 self.advance();
+
                 if let Some(escaped_char) = self.current_char {
-                    value.push(escaped_char);
+                    raw_lexeme.push(escaped_char);
+
+                    // Procesamos el escape para la memoria interna
+                    match escaped_char {
+                        'n' => processed_value.push('\n'),
+                        't' => processed_value.push('\t'),
+                        '\\' => processed_value.push('\\'),
+                        '"' => processed_value.push('"'),
+                        '\'' => processed_value.push('\''),
+                        _ => processed_value.push(escaped_char),
+                    }
                     self.advance();
                 }
             } else if c == quote_type {
-                self.advance(); // Consumir comilla de cierre
+                // Encontramos la comilla de cierre
+                self.advance();
                 break;
             } else {
-                value.push(c);
+                // Caracter normal, lo guardamos en ambos lados
+                raw_lexeme.push(c);
+                processed_value.push(c);
                 self.advance();
             }
         }
 
         Token {
-            token_type: TokenType::String(value.clone()), // Usamos .clone() porque lo necesitamos dos veces
-            value,
+            token_type: TokenType::String(processed_value),
+            value: raw_lexeme,
             line: self.line,
             column: start_column,
             indent_level: self.current_indent,

@@ -49,7 +49,7 @@ fn main() {
         let solo_nombre = nombre_tipo.split('(').next().unwrap_or(&nombre_tipo);
 
         println!(
-            "[{}] Valor: '{}' | Línea: {}, Columna: {}, Indentación: {}",
+            "[{}] Valor: '{}' | Linea: {}, Columna: {}, Indentacion: {}",
             solo_nombre, token.value, token.line, token.column, token.indent_level
         );
     }
