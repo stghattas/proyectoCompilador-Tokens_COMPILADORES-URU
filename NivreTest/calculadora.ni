@@ -1,3 +1,7 @@
+def assign():
+    a = 12
+    a=12
+
 def sumar(a, b):
     return a + b
 
@@ -18,7 +22,7 @@ def residuo(a, b):
     return a % b
 
 def mostrar_menu():
-    print("\n" + "="*20)
+    print("\"" + "="*20)
     print("    CALCULADORA")
     print("="*20)
     print("1. Suma (+)")

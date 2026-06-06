@@ -19,7 +19,10 @@ fn main() {
 
     // Validación opcional
     if !ruta_archivo.ends_with(".ni") {
-        eprintln!("Error: El archivo '{}' no tiene la extension permitida (.ni)", ruta_archivo);
+        eprintln!(
+            "Error: El archivo '{}' no tiene la extension permitida (.ni)",
+            ruta_archivo
+        );
         process::exit(1);
     }
 
